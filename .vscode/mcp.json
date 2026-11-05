@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "angular-cli": {
+      "command": "/home/wills/.nvm/versions/node/v26.13.0/bin/node",
+      "args": ["${workspaceFolder}/node_modules/@angular/cli/bin/ng.js", "mcp"]
+    }
+  }
+}
