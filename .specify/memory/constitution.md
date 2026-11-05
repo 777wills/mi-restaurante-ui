@@ -20,6 +20,7 @@ Informe de impacto de sincronización (Sync Impact Report)
   anthropics/skills@frontend-design; actualizar CLAUDE.md y README.md; reemplazar el
   boilerplate de app.html y app.spec.ts.
 -->
+
 # Constitución de Mi Restaurante UI
 
 ## Principios fundamentales
@@ -169,18 +170,18 @@ aplica las migraciones oficiales.
 
 ### Stack (verificado el 2026-11-05)
 
-| Pieza | Versión | Nota |
-| --- | --- | --- |
-| Angular (`@angular/*`) | 22.2.x | Componentes standalone, signals, `httpResource` |
-| Angular CLI / `@angular/build` | 22.2.x | Builder `application`, dev-server con proxy |
-| TypeScript | ~6.0 | `strict` y `strictTemplates` activos por defecto |
-| Node.js | 26 LTS | Angular 22 exige `^22.22.3 \|\| ^24.15.0 \|\| >=26` |
-| pnpm | 12.x | Gestor único |
-| Tailwind CSS (`@tailwindcss/postcss`) | 4.x | Configuración CSS-first con `@theme` |
-| Vitest + jsdom | 5.x | Builder `@angular/build:unit-test` |
-| `@vitest/coverage-v8` | 5.x | Umbral ≥ 80 % |
-| `angular-eslint` + ESLint | 22.x / 10.x | `recommended` + `templateAccessibility` |
-| Prettier | 3.x | `printWidth: 100`, comillas simples |
+| Pieza                                 | Versión     | Nota                                                |
+| ------------------------------------- | ----------- | --------------------------------------------------- |
+| Angular (`@angular/*`)                | 22.2.x      | Componentes standalone, signals, `httpResource`     |
+| Angular CLI / `@angular/build`        | 22.2.x      | Builder `application`, dev-server con proxy         |
+| TypeScript                            | ~6.0        | `strict` y `strictTemplates` activos por defecto    |
+| Node.js                               | 26 LTS      | Angular 22 exige `^22.22.3 \|\| ^24.15.0 \|\| >=26` |
+| pnpm                                  | 12.x        | Gestor único                                        |
+| Tailwind CSS (`@tailwindcss/postcss`) | 4.x         | Configuración CSS-first con `@theme`                |
+| Vitest + jsdom                        | 5.x         | Builder `@angular/build:unit-test`                  |
+| `@vitest/coverage-v8`                 | 5.x         | Umbral ≥ 80 %                                       |
+| `angular-eslint` + ESLint             | 22.x / 10.x | `recommended` + `templateAccessibility`             |
+| Prettier                              | 3.x         | `printWidth: 100`, comillas simples                 |
 
 `pnpm-lock.yaml` es la autoridad sobre las versiones exactas.
 
