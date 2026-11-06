@@ -20,6 +20,7 @@ Documentar paso a paso un flujo de trabajo con [Spec Kit](https://github.com/git
 12. [Flujo completo de Spec Kit](#12-flujo-completo-de-spec-kit)
 13. [Modificar el comportamiento de un comando de Spec Kit](#13-modificar-el-comportamiento-de-un-comando-de-spec-kit)
 14. [Repositorio propio para presets y otros componentes (informativo)](#14-repositorio-propio-para-presets-y-otros-componentes-informativo)
+15. [MCP: qué es, dónde buscarlos y el MCP de Playwright](#15-mcp-qué-es-dónde-buscarlos-y-el-mcp-de-playwright)
 
 ---
 
@@ -1108,3 +1109,231 @@ specify preset resolve speckit.specify
 - Revisa el código de cualquier preset, extensión o catálogo de terceros antes de instalarlo: pueden incluir scripts y comandos ejecutables.
 - Marca `--install-allowed` solo en catálogos propios o revisados; los demás se dejan solo para descubrimiento.
 - Documenta en el `README.md` del repositorio qué hace cada componente y cómo instalarlo.
+
+---
+
+## 15. MCP: qué es, dónde buscarlos y el MCP de Playwright
+
+### Qué es MCP
+
+[MCP (Model Context Protocol)](https://modelcontextprotocol.io/docs/getting-started/intro) es un estándar abierto para conectar aplicaciones de IA con sistemas externos: archivos, bases de datos, APIs, navegadores, documentación, etc. La documentación oficial lo compara con un puerto USB-C: así como USB-C conecta cualquier dispositivo con un mismo conector, MCP conecta cualquier agente con cualquier herramienta usando un mismo protocolo. Un servidor MCP se escribe una vez y funciona en Claude Code, GitHub Copilot, Cursor, OpenCode y demás clientes compatibles.
+
+Participantes ([arquitectura oficial](https://modelcontextprotocol.io/docs/learn/architecture)):
+
+| Participante | Qué es                                                                  | Ejemplo en este proyecto                |
+| ------------ | ----------------------------------------------------------------------- | --------------------------------------- |
+| **Host**     | La aplicación de IA que usa el desarrollador                            | Claude Code, VS Code con Copilot        |
+| **Cliente**  | Conexión que el host abre con **un** servidor (un cliente por servidor) | Lo crea el host automáticamente         |
+| **Servidor** | Programa que ofrece capacidades al agente; puede ser local o remoto     | `angular-cli`, `context7`, `playwright` |
+
+```mermaid
+flowchart LR
+    subgraph HOST ["Host: Claude Code / VS Code"]
+        C1["Cliente 1"]
+        C2["Cliente 2"]
+        C3["Cliente 3"]
+    end
+    C1 -- stdio --> S1["angular-cli<br/>(local)"]
+    C2 -- "HTTP" --> S2["context7<br/>(remoto)"]
+    C3 -- stdio --> S3["playwright<br/>(local)"]
+```
+
+Un servidor puede ofrecer tres tipos de capacidades (_primitivas_):
+
+- **Tools (herramientas):** funciones que el agente ejecuta, por ejemplo `browser_navigate` de Playwright o `query-docs` de Context7.
+- **Resources (recursos):** datos de contexto que el agente lee, por ejemplo el esquema de una base de datos.
+- **Prompts:** plantillas reutilizables que aparecen como comandos en el chat.
+
+Y se comunica por uno de dos transportes:
+
+- **stdio:** el host lanza el servidor como un proceso local (normalmente con `npx`, `uvx` o un binario). Es el caso de `angular-cli` y `playwright`.
+- **Streamable HTTP:** el servidor es remoto y se accede por URL, con autenticación por cabecera u OAuth. Es el caso de `context7` (sección 3).
+
+> Un servidor MCP stdio ejecuta código en tu máquina con tus permisos, y uno remoto actúa sobre servicios externos con tus credenciales. Revisa el publicador, el comando o la URL y los permisos antes de instalarlo. Los servidores que leen contenido externo (como un navegador) exponen al agente a _prompt injection_.
+
+### Dónde buscar MCPs
+
+| Fuente                                                                            | Qué ofrece                                                                                                                                 |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Registro oficial de MCP](https://registry.modelcontextprotocol.io/)              | Catálogo mantenido por el proyecto MCP, con API pública. Es la fuente de la que se alimentan otros catálogos.                              |
+| [GitHub MCP Registry](https://github.com/mcp)                                     | Catálogo curado con botón **Install** para VS Code. Aquí están, entre otros, Playwright, Context7, GitHub, Chrome DevTools, Figma y DBHub. |
+| VS Code: **Chat: Open Customizations → Browse**                                   | Búsqueda desde el editor (filtro `@type:mcp`). También en la vista de extensiones, sección _MCP Servers_.                                  |
+| [Anthropic Directory](https://claude.ai/directory)                                | Conectores revisados por Anthropic; los remotos se agregan a Claude Code con `claude mcp add`.                                             |
+| [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers) | Servidores de referencia (filesystem, git, fetch, memory…), útiles para aprender cómo se construye uno.                                    |
+| Documentación de cada producto                                                    | Muchos fabricantes publican su propio servidor oficial (por ejemplo Angular CLI: `ng mcp`).                                                |
+
+Criterios para elegir: prefiere servidores **oficiales** del fabricante de la herramienta, con mantenimiento reciente (releases y commits), licencia clara y documentación de seguridad. Instala solo los que vayas a usar: cada servidor agrega herramientas al contexto del agente.
+
+### Dónde guarda cada agente la configuración
+
+Es útil saberlo tanto para instalar como para desinstalar:
+
+| Agente / ámbito                    | Archivo                                                               | Formato      |
+| ---------------------------------- | --------------------------------------------------------------------- | ------------ |
+| Claude Code, ámbito `local` (def.) | `~/.claude.json`, dentro de `projects.<ruta-del-proyecto>.mcpServers` | `mcpServers` |
+| Claude Code, ámbito `user`         | `~/.claude.json`, en `mcpServers` de nivel superior                   | `mcpServers` |
+| Claude Code, ámbito `project`      | `.mcp.json` en la raíz del repositorio (versionado)                   | `mcpServers` |
+| VS Code, usuario                   | `~/.config/Code/User/mcp.json`                                        | `servers`    |
+| VS Code, workspace                 | `.vscode/mcp.json`                                                    | `servers`    |
+| Copilot (harness Copilot), global  | `~/.copilot/mcp-config.json`                                          | `mcpServers` |
+| OpenCode                           | `~/.config/opencode/opencode.json` u `opencode.json` del proyecto     | `mcp`        |
+
+Este repositorio ya tiene dos archivos de proyecto con el servidor `angular-cli`: `.mcp.json` (Claude Code) y `.vscode/mcp.json` (VS Code). Ojo: el formato de VS Code usa la clave `servers` y el portable usa `mcpServers`; no se copian entradas de uno a otro sin adaptarlas.
+
+### Desinstalar el MCP de Playwright
+
+[Playwright MCP](https://github.com/microsoft/playwright-mcp) (paquete npm `@playwright/mcp`, de Microsoft) se ejecuta con `npx`, así que no queda un paquete global que desinstalar: «desinstalarlo» consiste en **quitar su entrada de la configuración de cada agente** y, si se quiere, limpiar los archivos que dejó.
+
+#### 1. Localizar dónde está registrado
+
+```bash
+grep -ril playwright ~/.claude.json ~/.config/Code/User/mcp.json ~/.copilot/mcp-config.json \
+  ~/.config/opencode .mcp.json .vscode/mcp.json 2>/dev/null
+```
+
+En Claude Code también:
+
+```bash
+claude mcp list
+claude mcp get playwright   # muestra el ámbito (scope) en el que está
+```
+
+#### 2. Quitarlo de Claude Code
+
+```bash
+# Usa el ámbito que indicó `claude mcp get`: local, project o user
+claude mcp remove playwright --scope local
+```
+
+- Si está en ámbito `project`, el comando edita `.mcp.json`; revisa el diff antes de hacer commit, porque afecta a todo el equipo.
+- Si el servidor llegó dentro de un **plugin**, no se quita con `claude mcp remove`: se desinstala el plugin (`/plugin`).
+- Para apagarlo sin borrarlo, usa el interruptor del panel `/mcp` dentro de Claude Code.
+
+#### 3. Quitarlo de VS Code (GitHub Copilot)
+
+Cualquiera de estas opciones:
+
+- **Chat: Open Customizations → MCP Servers**, menú `...` del servidor → **Uninstall**.
+- **MCP: List Servers** en la paleta de comandos (`Ctrl+Shift+P`) → `playwright` → **Uninstall**.
+- Vista de extensiones → sección **MCP SERVERS - INSTALLED** → `playwright` → desinstalar.
+- Si **Uninstall** no aparece (servidor configurado a mano), borra **solo su entrada** del archivo correspondiente (`mcp.json` de usuario, `.vscode/mcp.json` o `.mcp.json`), no el archivo completo.
+
+**Disable** lo desactiva sin borrar la configuración; **Stop Server** solo termina la ejecución actual y el agente puede volver a iniciarlo.
+
+#### 4. Quitarlo de otros agentes
+
+- **OpenCode:** borra la entrada `playwright` del objeto `mcp` en `opencode.json`.
+- **Otros clientes:** borra la entrada `playwright` del bloque `mcpServers` de su archivo de configuración.
+
+#### 5. Limpiar residuos (opcional)
+
+- **Perfil persistente del navegador:** por defecto Playwright MCP guarda sesiones (cookies, logins) por proyecto en `~/.cache/ms-playwright/mcp-{canal}-{hash}` (Linux). Bórralo si no lo vas a volver a usar:
+
+  ```bash
+  ls -d ~/.cache/ms-playwright/mcp-*
+  rm -rf ~/.cache/ms-playwright/mcp-*
+  ```
+
+- **Navegadores descargados** (`~/.cache/ms-playwright/chromium-*`, `firefox-*`, etc.): no los borres si otro proyecto usa Playwright para pruebas E2E, porque la carpeta es compartida.
+- **Caché de `npx`** (`~/.npm/_npx`): se regenera sola; no hace falta tocarla.
+
+#### 6. Verificar
+
+- El `grep` del paso 1 no debe imprimir nada.
+- `claude mcp list` no debe mostrar `playwright`.
+- En VS Code, `playwright` ya no aparece en **MCP: List Servers**.
+
+### Ejemplo: usar Playwright MCP en este repositorio
+
+Playwright MCP permite que el agente abra un navegador real, navegue, haga clic, llene formularios, lea la consola y tome capturas. No usa visión: trabaja sobre el **árbol de accesibilidad** de la página, lo que lo hace rápido y determinista. En `mi-restaurante-ui` sirve para que el agente **verifique visualmente** lo que construye con Angular, por ejemplo el contrato del shell (`specs/001-project-baseline/contracts/shell-ui.md`).
+
+> Playwright también ofrece [Playwright CLI con skills](https://github.com/microsoft/playwright-cli), que según su documentación consume menos tokens en agentes de programación. El MCP sigue siendo adecuado para exploración interactiva donde conviene mantener el estado del navegador entre pasos.
+
+#### 1. Prerrequisitos
+
+- Node.js 18 o superior (este proyecto usa Node.js 26).
+- La aplicación levantada: `pnpm start` (sirve en `http://localhost:4200`).
+
+#### 2. Registrar el servidor para el proyecto
+
+Versión vigente al redactar esta guía: `@playwright/mcp` **0.0.84**. Para una configuración compartida en el repositorio conviene fijar la versión en lugar de usar `@latest`, para que todo el equipo use la misma.
+
+**Claude Code** (ámbito `project`, escribe en `.mcp.json`):
+
+```bash
+claude mcp add --scope project playwright -- npx -y @playwright/mcp@0.0.84 --isolated
+```
+
+`.mcp.json` quedaría así:
+
+```json
+{
+  "mcpServers": {
+    "angular-cli": {
+      "command": "/home/wills/.nvm/versions/node/v26.13.0/bin/node",
+      "args": ["node_modules/@angular/cli/bin/ng.js", "mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.84", "--isolated"]
+    }
+  }
+}
+```
+
+**VS Code** (`.vscode/mcp.json`, formato `servers`):
+
+```json
+{
+  "servers": {
+    "angular-cli": {
+      "command": "/home/wills/.nvm/versions/node/v26.13.0/bin/node",
+      "args": ["${workspaceFolder}/node_modules/@angular/cli/bin/ng.js", "mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.84", "--isolated"]
+    }
+  }
+}
+```
+
+Opciones útiles (se agregan a `args`):
+
+| Opción                 | Efecto                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `--isolated`           | Perfil en memoria: cada sesión empieza limpia y no deja datos en disco.                  |
+| `--headless`           | Sin ventana visible. Por defecto el navegador se ve, lo que es útil para aprender.       |
+| `--device "iPhone 15"` | Emula un dispositivo móvil desde el inicio (el proyecto es _mobile-first_).              |
+| `--output-dir <ruta>`  | Carpeta para capturas y archivos generados; agrégala a `.gitignore` si queda en el repo. |
+
+Al abrir Claude Code, aprueba el servidor de `.mcp.json` cuando lo pida; compruébalo con `/mcp`. En VS Code, el servidor debe aparecer en **MCP: List Servers**.
+
+#### 3. Pedirle al agente una verificación
+
+Con `pnpm start` corriendo, envía en el chat:
+
+```text
+Usa el MCP de Playwright (no las herramientas de navegador integradas) para revisar http://localhost:4200:
+
+1. Indica el atributo lang de <html> y el <title> del documento.
+2. Confirma que existe un <header> con un único <h1> «Mi Restaurante» y una región <main>.
+3. Lista los mensajes de consola de nivel warning o error.
+4. Redimensiona la ventana a 375x812 y toma una captura de pantalla completa.
+
+Compara el resultado con specs/001-project-baseline/contracts/shell-ui.md y reporta cualquier diferencia. No modifiques archivos.
+```
+
+#### 4. Qué observar
+
+- El agente debe invocar herramientas del servidor `playwright`, por ejemplo `browser_navigate`, `browser_snapshot`, `browser_evaluate`, `browser_console_messages`, `browser_resize` y `browser_take_screenshot`. Expande cada llamada en el chat para ver su salida.
+- Resultado esperado según el contrato: `lang="es-CO"`, título «Mi Restaurante», `<header>` con el `<h1>` y `<main>` presentes, sin errores en consola.
+- La respuesta del agente debe basarse en lo que devolvieron las herramientas; una respuesta plausible sin llamadas al MCP no cuenta como verificación.
+
+Otros usos en este repositorio:
+
+- Después de `/speckit-implement`, pedir al agente que recorra la vista nueva y confirme los escenarios de aceptación de la spec.
+- Reproducir un bug: navegar, interactuar y leer la consola y las peticiones de red.
+- Revisar el formato regional en pantalla (precios en COP, fechas en español) cuando existan vistas con datos.
+
+> Esta verificación es exploratoria y no sustituye las pruebas automatizadas del proyecto (`pnpm test`). Las capturas generadas no se versionan.

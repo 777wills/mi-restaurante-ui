@@ -19,11 +19,13 @@ Eres un experto en TypeScript, Angular y desarrollo de aplicaciones web escalabl
 ## Comandos
 
 ```bash
-pnpm install          # instalar dependencias
+pnpm install          # instalar dependencias (requiere Node.js 26)
 pnpm start            # ng serve en http://localhost:4200
 pnpm build            # build de producción en dist/
 pnpm watch            # build en modo desarrollo con watch
+pnpm lint             # ng lint (angular-eslint con accesibilidad de plantillas)
 pnpm test             # ng test (Vitest)
+pnpm test:coverage    # pruebas con cobertura; falla bajo el 80 % de líneas
 pnpm ng generate component <ruta>  # scaffolding con Angular CLI
 ```
 

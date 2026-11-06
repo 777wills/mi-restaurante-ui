@@ -1,12 +1,12 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.css',
   templateUrl: './app.html',
+  host: {
+    class: 'block min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-900 dark:text-stone-50',
+  },
 })
-export class App {
-  protected readonly title = signal('mi-restaurante-ui');
-}
+export class App {}
